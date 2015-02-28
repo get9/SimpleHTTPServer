@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     servSock = CreateTCPServerSocket(echoServPort);
 
     /* Set ChildExitSignalHandler() as handler function */
-    myAction.sa_handler =  ChildExitSignalHandler;
+    myAction.sa_handler = ChildExitSignalHandler;
     if (sigfillset(&myAction.sa_mask) < 0) {   /* mask all signals */
         DieWithError("sigfillset() failed");
     }

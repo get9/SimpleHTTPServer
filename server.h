@@ -1,2 +1,6 @@
 // Passing char * so port can get passed to getaddrinfo correctly
-void run_server(char *, char *);
+_Noreturn void run_server(char *, char *);
+
+// Signal handler functions
+void init_signalhandler(void);
+void sigchld_handler(int sig);

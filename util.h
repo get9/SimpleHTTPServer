@@ -1,1 +1,1 @@
-void die(char *) __attribute__((__noreturn));
+_Noreturn void die(char *);

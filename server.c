@@ -1,13 +1,20 @@
 #include <signal.h>
 #include <stdio.h>
+#include <inttypes.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
+#include "server.h"
 #include "util.h"
 #include "tcp.h"
 
-uint32_t g_num_procs = 0;
+static uint32_t g_num_procs = 0;
 
 // Server main execution loop
-void run_server(uint16_t port, char *root_path)
+void run_server(char *port, char *root_path)
 {
     // Sets up signal handler
     init_signalhandler();

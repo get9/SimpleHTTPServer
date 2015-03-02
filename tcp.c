@@ -123,7 +123,7 @@ void *get_addr_struct(struct sockaddr *client_addr)
 }
 
 // Process a TCP connection from a client
-void process_tcp_connection(int client_socket)
+void process_http_connection(int client_socket)
 {
     // Get the request from the client
     char *msgbuf = NULL;
@@ -166,7 +166,7 @@ int get_request(int client_socket, char *msgbuf, uint64_t *msgbuf_len)
         content_len += (uint64_t) recv_size;
 
         // Need to resize msgbuf if necessary
-        if (recv_size == *msgbuf_len) {
+        if ((uint64_t) recv_size == *msgbuf_len) {
             uint64_t multiplier = 2;
             char *tmpbuf = resize_buf(msgbuf, *msgbuf_len, multiplier);    
             if (tmpbuf == NULL) {

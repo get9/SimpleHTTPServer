@@ -1,4 +1,6 @@
 #include <string.h>
+#include <inttypes.h>
+#include <stdlib.h>
 
 #include "http_parse.h"
 
@@ -11,7 +13,7 @@ int parse_request(char *http_request, uint64_t req_len, struct http_req_t *req)
 }
 
 // Splits req into its associated lines of content
-char **splitlines(char *req, uint64_t len);
+char **splitlines(char *req, uint64_t len)
 {
     // + 1 for sentinel value at the end
     uint64_t numlines = count_lines(req, len);
@@ -32,7 +34,7 @@ char **splitlines(char *req, uint64_t len);
 }
 
 // Counts the number of lines in req
-uint64_t count_lines(char *req, uint64_t len);
+uint64_t count_lines(char *req, uint64_t len)
 {
     uint64_t count = 0;
     for (uint64_t i = 0; i < len; ++i) {
@@ -44,7 +46,7 @@ uint64_t count_lines(char *req, uint64_t len);
 }
 
 // Parses the method line from method_line and fills the struct http_req_t
-void parse_method_line(char *method_line, struct http_req_t *req);
+void parse_method_line(char *method_line, struct http_req_t *req)
 {
     char *tmp = strtok(method_line, " ");
     // Grab method name
@@ -55,5 +57,5 @@ void parse_method_line(char *method_line, struct http_req_t *req);
     req->file = strdup(tmp);
     // Grap version info
     tmp = strtok(NULL, " ");
-    req->vers = strdup(vers);
+    req->vers = strdup(tmp);
 }

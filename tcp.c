@@ -131,6 +131,15 @@ void process_tcp_connection(int client_socket)
     if (get_request(client_socket, msgbuf, &msgbuf_len) == -1) {
         die("get_request() failed");
     }
+
+    // Parse the request and fill the struct http_req_t
+    struct http_req_t req;
+    parse_request(msgbuf, msgbuf_len, &req);
+
+    // DEBUG
+    printf("Method: %s\n", req.method);
+    printf("File: %s\n", req.file);
+    printf("Version: %s\n", req.vers);
 }
 
 // Gets request from the client and puts the received bytes in msgbuf with length msgbuf_len

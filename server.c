@@ -11,8 +11,7 @@
 #include "util.h"
 #include "tcp.h"
 
-static uint32_t g_num_procs = 0;
-
+static uint32_t g_num_procs = 0; 
 // Server main execution loop
 void run_server(char *port, char *root_path)
 {
@@ -30,7 +29,7 @@ void run_server(char *port, char *root_path)
             die("fork() failed");
         } else if (child_id == 0) {
             close(server_socket);
-            process_tcp_connection(client_socket);
+            process_http_connection(client_socket);
             exit(0);
         }
 

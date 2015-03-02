@@ -2,7 +2,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
-#include "http_parse.h"
+#include "http.h"
 
 // Parses the request and fills the struct http_req_t
 int parse_request(char *http_request, uint64_t req_len, struct http_req_t *req)
@@ -67,4 +67,85 @@ void parse_method_line(char *method_line, struct http_req_t *req)
     // Grap version info
     tmp = strtok(NULL, " ");
     req->vers = strdup(tmp);
+}
+
+// Determine the response code based on whether the file exists
+char *get_response_code(char *filename)
+{
+    return (file_exists(filename) ? "200 OK" : "404 Not Found");
+}
+
+// Determine content type associated with this file
+// Only handle 4 types:
+//     * text/plain (.txt)
+//     * text/html (.html)
+//     * image/jpeg (.jpg, .jpeg)
+//     * image/gif (.gif)
+char *get_content_type(char *filename)
+{
+    char *ext = get_extension(filename);
+    if (ext == NULL) {
+        return NULL;
+    }
+    if (strncmp(ext, "html", strlen("html")) == 0 || 
+        strncmp(ext, "html", strlen("htm")) == 0) {
+        return "text/html";
+    } else if (strncmp(ext, "jpeg", strlen("jpeg")) == 0 ||
+               strncmp(ext, "jpg", strlen("jpg")) == 0) {
+        return "image/jpeg";
+    } else if (strncmp(ext, "gif", strlen("gif")) == 0) {
+        return "image/gif";
+    } else {
+        return "text/plain";
+    }
+}
+
+// Gets the actual content and stores a pointer to it in the structure
+char *get_content(char *filename)
+{
+    if (!file_exists(filename)) {
+        return NULL;
+    }
+
+    // Determine file size first
+    FILE *f = fopen(filename, "rb");
+    fseek(f, 0, SEEK_END);
+    long int fsize = ftell(f);
+    rewind(f);
+
+    // Read contents to buffer
+    char *buf = malloc((fsize + 1) * sizeof(char));
+    fread(buf, fsize, sizeof(char), f);
+    if (ferror(f)) {
+        free(buf);
+        return NULL;
+    }
+    fclose(f);
+    buf[fsize] = '\0';
+
+    return buf;
+}
+
+// Copy over the version information
+char *get_vers(char *vers)
+{
+    char *newvers = malloc((strlen(vers) + 1) * sizeof(char));
+    strncpy(newvers, vers, strlen(vers));
+    newvers[strlen(vers)] = '\0';
+    return newvers;
+}
+
+// Cleanup functions
+void destroy_http_req_t(struct http_req_t *req)
+{
+    free(req->file);
+    free(req->vers);
+}
+
+void destroy_http_resp_t(struct http_resp_t *resp)
+{
+    free(resp->rc);
+    free(resp->content_type);
+    free(resp->content);
+    free(resp->vers);
 }

@@ -22,7 +22,7 @@
 
 #include "tcp.h"
 #include "util.h"
-#include "http_parse.h"
+#include "http.h"
 
 // Creates a TCP socket and returns the socket descriptor
 int create_tcp_socket(char *port, int max_conns)
@@ -124,7 +124,7 @@ void *get_addr_struct(struct sockaddr *client_addr)
 }
 
 // Process a TCP connection from a client
-void process_http_connection(int client_socket)
+void process_http_connection(int client_socket, char *http_root)
 {
     // Get the request from the client
     char *msgbuf = NULL;
@@ -137,7 +137,39 @@ void process_http_connection(int client_socket)
     struct http_req_t req;
     parse_request(msgbuf, msgbuf_len, &req);
 
+    // Check if requesting root dir; if so, set to default path
+    if (strncmp(req.file, "/", strlen(req.file)) == 0) {
+        char defaultpath[] = "/index.html";
+    }
+
+    // Construct full path for the requested file
+    char *fullpath = join_paths(http_root, req.file);
+    free(req.file);
+    req.file = fullpath;
+
+    // Construct the response data
     struct http_resp_t resp;
+    fill_response_struct(req, &resp);
+    
+    // Make the response string
+    char *resp_str = make_response_string(resp);
+    if (resp_str == NULL) {
+        resp_str = make_404();
+    }
+
+    // Finally, send the response back to the server and close connection
+    if (send(client_socket, resp_str, strlen(resp_str), 0) == -1) {
+        free(resp_str);
+        destroy_http_req_t(&req);
+        destroy_http_resp_t(&resp);
+        die("send() failed");
+    }
+
+    // Cleanup
+    free(resp_str);
+    destroy_http_req_t(&req);
+    destroy_http_resp_t(&resp);
+
     close(client_socket);
 }
 
@@ -186,4 +218,51 @@ int get_request(int client_socket, char **msgbuf, uint64_t *msgbuf_len)
     */
 
     return 0;
+}
+
+// Populate the response struct
+void fill_response_data(struct http_req_t req, struct http_resp_t *resp)
+{
+    vers = malloc(req.vers * sizeof(char));
+    if (file_exists(req.file)) {
+        *resp = (struct http_resp_t) {
+            .rc = get_response_code(req.file),
+            .content_type = get_content_type(req.file),
+            .content = get_content(req.file),
+            .content_len = strlen(resp.content),
+            .vers = get_vers(req.vers)
+        }
+    } else {
+        // 404
+        *resp = (struct http_resp_t) {
+            .rc = "404 Not Found",
+            .content_type = NULL,
+            .content = NULL,
+            .content_len = 0,
+            .vers = get_vers(req.vers)
+        }
+    }
+}
+
+// Craft response string to send back to the client
+char *make_response_str(struct http_resp_t resp)
+{
+    // snprintf with 0 as second arg returns size it would have written
+    int strsize = snprintf(NULL, 0,
+                           "%s %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",
+                           resp.vers, resp.rc, resp.content_type, resp.content_len, resp.content);
+    char *resp_str = malloc(strsize * sizeof(char));
+    int newsize = snprintf(resp_str, strsize,
+                           "%s %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",
+                           resp.vers, resp.rc, resp.content_type, resp.content_len, resp.content);
+    if (newsize < 0) {
+        return NULL;
+    }
+    return resp_str;
+}
+
+// Make a generic 404 response string
+char *make_404(void)
+{
+    return "HTTP/1.0 404 Not Found\r\nConnection: close\r\n\r\n";
 }

@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #include "tcp.h"
 #include "util.h"
@@ -128,7 +129,7 @@ void process_http_connection(int client_socket)
     // Get the request from the client
     char *msgbuf = NULL;
     uint64_t msgbuf_len = 0;
-    if (get_request(client_socket, msgbuf, &msgbuf_len) == -1) {
+    if (get_request(client_socket, &msgbuf, &msgbuf_len) == -1) {
         die("get_request() failed");
     }
 
@@ -136,14 +137,12 @@ void process_http_connection(int client_socket)
     struct http_req_t req;
     parse_request(msgbuf, msgbuf_len, &req);
 
-    // DEBUG
-    printf("Method: %s\n", req.method);
-    printf("File: %s\n", req.file);
-    printf("Version: %s\n", req.vers);
+    struct http_resp_t resp;
+    close(client_socket);
 }
 
 // Gets request from the client and puts the received bytes in msgbuf with length msgbuf_len
-int get_request(int client_socket, char *msgbuf, uint64_t *msgbuf_len)
+int get_request(int client_socket, char **msgbuf, uint64_t *msgbuf_len)
 {
     // Handle input validation, etc
     if (msgbuf_len == NULL) {
@@ -151,32 +150,40 @@ int get_request(int client_socket, char *msgbuf, uint64_t *msgbuf_len)
     }
 
     // Alloc memory for new message; initialized to BUFSIZE constant
-    msgbuf = malloc(BUFSIZE * sizeof(char));
+    *msgbuf = malloc(BUFSIZE * sizeof(char));
     *msgbuf_len = BUFSIZE;
     uint64_t content_len = 0;
     int64_t recv_size = 0;
 
     // Receive bytes
+    recv_size = recv(client_socket, *msgbuf, *msgbuf_len, 0);
+    if (recv_size == -1) {
+        die("recv() failed");
+    }
+    /*
     do {
-        recv_size = recv(client_socket, msgbuf + content_len, *msgbuf_len - content_len, 0);
-        if (recv_size == -1) {
-            free(msgbuf);
-            die("recv() failed");
+        recv_size = recv(client_socket, *msgbuf + content_len, *msgbuf_len - content_len, 0);
+
+        // Since client_socket is non-blocking, recv_size will be -1 when no data received
+        if (recv_size < 0) {
+            break;
         }
+
         content_len += (uint64_t) recv_size;
 
         // Need to resize msgbuf if necessary
         if ((uint64_t) recv_size == *msgbuf_len) {
             uint64_t multiplier = 2;
-            char *tmpbuf = resize_buf(msgbuf, *msgbuf_len, multiplier);    
+            char *tmpbuf = resize_buf(*msgbuf, *msgbuf_len, multiplier);    
             if (tmpbuf == NULL) {
-                free(msgbuf);
+                free(*msgbuf);
                 die("resize_buf() failed");
             }
-            msgbuf = tmpbuf;
+            *msgbuf = tmpbuf;
             *msgbuf_len *= multiplier;
         }
     } while (recv_size > 0);
+    */
 
     return 0;
 }

@@ -17,9 +17,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "tcp.h"
 #include "util.h"
+#include "http_parse.h"
 
 // Creates a TCP socket and returns the socket descriptor
 int create_tcp_socket(char *port, int max_conns)
@@ -123,4 +125,49 @@ void *get_addr_struct(struct sockaddr *client_addr)
 // Process a TCP connection from a client
 void process_tcp_connection(int client_socket)
 {
+    // Get the request from the client
+    char *msgbuf = NULL;
+    uint64_t msgbuf_len = 0;
+    if (get_request(client_socket, msgbuf, &msgbuf_len) == -1) {
+        die("get_request() failed");
+    }
+}
+
+// Gets request from the client and puts the received bytes in msgbuf with length msgbuf_len
+int get_request(int client_socket, char *msgbuf, uint64_t *msgbuf_len)
+{
+    // Handle input validation, etc
+    if (msgbuf_len == NULL) {
+        return -1;
+    }
+
+    // Alloc memory for new message; initialized to BUFSIZE constant
+    msgbuf = malloc(BUFSIZE * sizeof(char));
+    *msgbuf_len = BUFSIZE;
+    uint64_t content_len = 0;
+    int64_t recv_size = 0;
+
+    // Receive bytes
+    do {
+        recv_size = recv(client_socket, msgbuf + content_len, *msgbuf_len - content_len, 0);
+        if (recv_size == -1) {
+            free(msgbuf);
+            die("recv() failed");
+        }
+        content_len += (uint64_t) recv_size;
+
+        // Need to resize msgbuf if necessary
+        if (recv_size == *msgbuf_len) {
+            uint64_t multiplier = 2;
+            char *tmpbuf = resize_buf(msgbuf, *msgbuf_len, multiplier);    
+            if (tmpbuf == NULL) {
+                free(msgbuf);
+                die("resize_buf() failed");
+            }
+            msgbuf = tmpbuf;
+            *msgbuf_len *= multiplier;
+        }
+    } while (recv_size > 0);
+
+    return 0;
 }

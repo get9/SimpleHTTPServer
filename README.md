@@ -11,10 +11,10 @@ robust against known attacks. Case in point, don't use this server to run any
 sensitive things. Actually, you probably shouldn't use this server period.
 
 Currently it only handles GET requests and the following content types:
-    - text/plain
-    - text/html
-    - image/jpeg
-    - image/gif
+    - text/plain (.txt, anything that's not one of the below)
+    - text/html (.html)
+    - image/jpeg (.jpg, .jpeg)
+    - image/gif (.gif)
 
 If a file is not found on the server, it will return a 404. Connections are
 closed after every HTTP transaction.

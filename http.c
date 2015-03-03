@@ -1,8 +1,10 @@
 #include <string.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "http.h"
+#include "util.h"
 
 // Parses the request and fills the struct http_req_t
 int parse_request(char *http_request, uint64_t req_len, struct http_req_t *req)
@@ -14,6 +16,7 @@ int parse_request(char *http_request, uint64_t req_len, struct http_req_t *req)
     int i = 0;
     while (lines[i] != NULL) {
         free(lines[i]);
+        i++;
     }
     free(lines);
     return 0;
@@ -60,7 +63,7 @@ void parse_method_line(char *method_line, struct http_req_t *req)
     // Grab method name
     char *tmp = strtok(method_line, " ");
     memset(req->method, 0, strlen(req->method));
-    strncpy(req->method, tmp, strlen(req->method));
+    strncpy(req->method, tmp, strlen(tmp));
     // Grab file
     tmp = strtok(NULL, " ");
     req->file = strdup(tmp);
@@ -101,29 +104,33 @@ char *get_content_type(char *filename)
 }
 
 // Gets the actual content and stores a pointer to it in the structure
-char *get_content(char *filename)
+int32_t get_content(char *filename, char **content_buf, uint64_t *content_len)
 {
-    if (!file_exists(filename)) {
-        return NULL;
+    if (!file_exists(filename) || content_buf == NULL || content_len == NULL) {
+        return -1;
     }
 
     // Determine file size first
     FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
-    long int fsize = ftell(f);
+    long len = 0;
+    if ((len = ftell(f)) == -1) {
+        return -1;
+    } else {
+        *content_len = (uint64_t) len;
+    }
     rewind(f);
 
     // Read contents to buffer
-    char *buf = malloc((fsize + 1) * sizeof(char));
-    fread(buf, fsize, sizeof(char), f);
+    *content_buf = malloc(*content_len * sizeof(char));
+    fread(*content_buf, *content_len, sizeof(char), f);
     if (ferror(f)) {
-        free(buf);
-        return NULL;
+        free(*content_buf);
+        return -1;
     }
     fclose(f);
-    buf[fsize] = '\0';
 
-    return buf;
+    return 0;
 }
 
 // Copy over the version information
@@ -138,14 +145,20 @@ char *get_vers(char *vers)
 // Cleanup functions
 void destroy_http_req_t(struct http_req_t *req)
 {
-    free(req->file);
-    free(req->vers);
+    if (req->file) {
+        free(req->file);
+    }
+    if (req->vers) {
+        free(req->vers);
+    }
 }
 
 void destroy_http_resp_t(struct http_resp_t *resp)
 {
-    free(resp->rc);
-    free(resp->content_type);
-    free(resp->content);
-    free(resp->vers);
+    if (resp->content) {
+        free(resp->content);
+    }
+    if (resp->vers) {
+        free(resp->vers);
+    }
 }

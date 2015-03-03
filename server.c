@@ -29,7 +29,7 @@ void run_server(char *port, char *root_path)
             die("fork() failed");
         } else if (child_id == 0) {
             close(server_socket);
-            process_http_connection(client_socket);
+            process_http_connection(client_socket, root_path);
             exit(0);
         }
 

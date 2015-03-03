@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "util.h"
 
@@ -37,15 +38,19 @@ char *join_paths(char *base, char *file)
 
     // Remove consecutive slashes
     char *single_slash_path = calloc(strlen(newpath) + 1, sizeof(char));
-    int i = 0;
-    while (i < strlen(newpath) + 1) {
-        if (newpath[i] == '/') {
+    uint32_t i = 0;
+    uint32_t j = 0;
+    while (i < (strlen(single_slash_path) + 1) && j < (strlen(newpath) + 1)) {
+        if (newpath[j] == '/') {
             single_slash_path[i] = '/';
-            while (newpath[i] == '/') {
-                i++;
+            i++;
+            while (newpath[j] == '/') {
+                j++;
             }
         }
-        single_slash_path[i] = newpath[i];
+        single_slash_path[i] = newpath[j];
+        i++;
+        j++;
     }
     free(newpath);
     return single_slash_path;
@@ -57,7 +62,7 @@ char *get_extension(char *filename)
     if (!file_exists(filename)) {
         return NULL;
     }
-    char *ext = strrchr(filename);
+    char *ext = strrchr(filename, '.');
     if (ext == NULL || ext == filename) {
         return "";
     } else {
